@@ -169,6 +169,8 @@
       width: 1.75rem;
     }
     .content {
+      /* tailwind built-ins */
+      box-sizing: border-box;
       /*max-w-prose*/
       max-width: 65ch;
       /*mx-auto*/
@@ -181,6 +183,20 @@
     .non-leading-header {
       /*mt-4*/
       margin-top: 1rem;
+    }
+    .inline-link {
+      /*underline*/
+      text-decoration: underline;
+      /*text-blue-800*/
+      color: #1E40AF; 
+    }
+    .inline-link:hover {
+      /*hover:text-green-400*/
+      color: #34d399;
+    }
+    .inline-link:active {
+      /*active:text-green-600*/
+      color: #059669;
     }
     @media (min-width: 640px) {
       header {
@@ -256,7 +272,7 @@
       <h2 class="non-leading-header">Technology</h2>
       <p>Michael takes a technology-agnostic approach to ensure the right tools are used to solve the problem at hand. His approach has had success with both cutting-edge technologies and legacy environments.</p>
       <p>He is a firm believer in great user experience and especially not making people think too hard about things they shouldn't have to. </p>
-      <p>Michael enjoys learning about new technologies and is an avid reader of tech news sites like <a class="underline text-blue-800 hover:text-green-400 active:text-green-600" href="https://news.ycombinator.com">Hacker News</a>.</p>
+      <p>Michael enjoys learning about new technologies and is an avid reader of tech news sites like <a class="inline-link" href="https://news.ycombinator.com">Hacker News</a>.</p>
       <h2 class="non-leading-header">Contact</h2>
       <p>Use the links above to reach out to Michael.</p>
     </div>
