@@ -1,12 +1,12 @@
 #!/bin/sh
 
 # Update the system
-apt update
-apt upgrade
+sudo apt update
+sudo apt upgrade
 
 # Install ifconfig
-apt install net-tools
+sudo apt install net-tools
 
 # Set up SSH server and allow through ufw
-apt install openssh-server
-ufw allow ssh
+sudo apt install openssh-server
+sudo ufw allow ssh
