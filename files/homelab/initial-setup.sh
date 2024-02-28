@@ -1,4 +1,5 @@
 #!/bin/sh
+#/bin/bash -c "$(curl -fsSL https://michaelrudden.com/files/homelab/initial-setup.sh)"
 
 # Update the system
 sudo apt update
