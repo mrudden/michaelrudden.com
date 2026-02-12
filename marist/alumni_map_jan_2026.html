@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NC & SC Alumni Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0f1923;
+    color: #e8e6e1;
+    min-height: 100vh;
+  }
+
+  .header {
+    padding: 24px 40px 18px;
+    background: linear-gradient(135deg, #0f1923 0%, #1a2a3a 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+
+  .header .subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-circle {
+    border-radius: 50%;
+    border: 2px solid;
+    opacity: 0.8;
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 32px;
+    padding: 12px 40px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 13px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .stat-label {
+    color: rgba(255,255,255,0.4);
+    font-weight: 500;
+  }
+
+  .controls-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .controls-group-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.3);
+    margin-right: 4px;
+    font-weight: 600;
+  }
+
+  .filter-btn {
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover {
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+  }
+
+  .filter-btn.active {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.25);
+    color: #fff;
+  }
+
+  .separator {
+    width: 1px;
+    height: 24px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 8px;
+  }
+
+  #map {
+    width: 100%;
+    height: calc(100vh - 130px);
+  }
+
+  .leaflet-popup-content-wrapper {
+    background: #1a2a3a !important;
+    color: #e8e6e1 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    padding: 0 !important;
+  }
+
+  .leaflet-popup-tip {
+    background: #1a2a3a !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-top: none !important;
+    border-left: none !important;
+  }
+
+  .leaflet-popup-content {
+    margin: 0 !important;
+    min-width: 200px !important;
+    max-width: 300px !important;
+  }
+
+  .popup-inner {
+    padding: 16px 20px;
+  }
+
+  .popup-city {
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  .popup-state {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .popup-count {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .popup-count-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .popup-bar {
+    margin-top: 10px;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .popup-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  .popup-cities-list {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .popup-cities-list::-webkit-scrollbar {
+    width: 4px;
+  }
+  .popup-cities-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .popup-cities-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+  }
+
+  .popup-city-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 3px 0;
+    font-size: 12px;
+  }
+
+  .popup-city-name {
+    color: rgba(255,255,255,0.7);
+  }
+
+  .popup-city-count {
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  .popup-top-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .popup-metro-type {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+
+  .leaflet-container {
+    background: #0f1923 !important;
+  }
+
+  .info-panel {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    z-index: 1000;
+    background: rgba(26, 42, 58, 0.92);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    max-width: 240px;
+    line-height: 1.5;
+  }
+
+  .leaflet-control-zoom a {
+    background: #1a2a3a !important;
+    color: #e8e6e1 !important;
+    border-color: rgba(255,255,255,0.1) !important;
+  }
+
+  .leaflet-control-zoom a:hover {
+    background: #253a4e !important;
+  }
+
+  @media (max-width: 768px) {
+    .header { padding: 16px 20px; }
+    .header h1 { font-size: 22px; }
+    .stats-bar { padding: 10px 20px; gap: 16px; }
+    .info-panel { display: none; }
+    .separator { display: none; }
+    .controls-row { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Alumni Distribution</h1>
+    <div class="subtitle">North Carolina & South Carolina</div>
+  </div>
+  <div class="controls-row">
+    <div class="controls-group">
+      <span class="controls-group-label">View</span>
+      <button class="filter-btn active" data-view="cities">Cities</button>
+      <button class="filter-btn" data-view="metro">Metro Areas</button>
+    </div>
+    <div class="separator"></div>
+    <div class="controls-group">
+      <span class="controls-group-label">State</span>
+      <button class="filter-btn state-btn active" data-filter="all">All</button>
+      <button class="filter-btn state-btn" data-filter="NC">NC</button>
+      <button class="filter-btn state-btn" data-filter="SC">SC</button>
+    </div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><span class="stat-value" id="total-count">—</span><span class="stat-label">total alumni</span></div>
+  <div class="stat"><span class="stat-value" id="city-count">—</span><span class="stat-label" id="city-label">cities</span></div>
+  <div class="stat"><span class="stat-value" id="nc-count">—</span><span class="stat-label">in NC</span></div>
+  <div class="stat"><span class="stat-value" id="sc-count">—</span><span class="stat-label">in SC</span></div>
+  <div class="legend" style="margin-left:auto;">
+    <div class="legend-item">
+      <div class="legend-circle" style="width:10px;height:10px;background:rgba(99,179,237,0.25);border-color:rgba(99,179,237,0.6);"></div>
+      <span>NC</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-circle" style="width:10px;height:10px;background:rgba(251,191,36,0.25);border-color:rgba(251,191,36,0.6);"></div>
+      <span>SC</span>
+    </div>
+    <div class="legend-item" id="legend-mixed" style="display:none;">
+      <div class="legend-circle" style="width:10px;height:10px;background:rgba(167,139,250,0.25);border-color:rgba(167,139,250,0.6);"></div>
+      <span>Cross-state</span>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div class="info-panel" id="info-panel">
+  <strong style="color:rgba(255,255,255,0.7);">How to explore</strong><br>
+  Hover over a bubble to see details. Click to zoom in. Use the <em>View</em> toggle to switch between individual cities and metro area clusters.
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────
+const csvData = `City,State,Count
+Charlotte,NC,125
+Raleigh,NC,85
+Cary,NC,66
+Wilmington,NC,58
+Myrtle Beach,SC,55
+Apex,NC,47
+Durham,NC,38
+Mount Pleasant,SC,37
+Charleston,SC,34
+Wake Forest,NC,33
+Bluffton,SC,31
+Holly Springs,NC,29
+Mooresville,NC,28
+Fort Mill,SC,28
+Waxhaw,NC,24
+Leland,NC,24
+Fuquay Varina,NC,22
+Southport,NC,20
+Matthews,NC,20
+Huntersville,NC,19
+Concord,NC,16
+Asheville,NC,16
+Greensboro,NC,14
+Chapel Hill,NC,13
+Clayton,NC,13
+Ocean Isle Beach,NC,12
+Morrisville,NC,12
+New Bern,NC,11
+Greenville,NC,10
+Winston Salem,NC,9
+Hampstead,NC,9
+Knightdale,NC,8
+Calabash,NC,8
+Cornelius,NC,8
+Belmont,NC,7
+Fayetteville,NC,7
+Garner,NC,7
+Wendell,NC,7
+High Point,NC,7
+Bolivia,NC,7
+Carolina Beach,NC,6
+Willow Spring,NC,6
+Monroe,NC,6
+Rolesville,NC,6
+Zebulon,NC,6
+Pittsboro,NC,5
+Sunset Beach,NC,5
+Southern Pines,NC,5
+Denver,NC,5
+Indian Trail,NC,5
+New Hill,NC,5
+Hillsborough,NC,4
+Oak Island,NC,4
+Weaverville,NC,4
+Hickory,NC,4
+Youngsville,NC,4
+Franklinton,NC,4
+Gastonia,NC,4
+Mint Hill,NC,4
+Hendersonville,NC,4
+Davidson,NC,4
+Smithfield,NC,3
+Surf City,NC,3
+Sneads Ferry,NC,3
+Pinehurst,NC,3
+Sanford,NC,3
+Swansboro,NC,3
+Harrisburg,NC,3
+Pineville,NC,3
+Angier,NC,3
+Statesville,NC,3
+Brevard,NC,3
+Jacksonville,NC,3
+Salisbury,NC,3
+Morehead City,NC,3
+Shallotte,NC,3
+Carolina Shores,NC,3
+Fletcher,NC,3
+Kernersville,NC,3
+Troutman,NC,2
+Mount Pleasant,NC,2
+Wilson,NC,2
+Clemmons,NC,2
+Kannapolis,NC,2
+Boone,NC,2
+Tryon,NC,2
+Asheboro,NC,2
+Newport,NC,2
+Burlington,NC,2
+Arden,NC,2
+Nags Head,NC,2
+Kitty Hawk,NC,2
+Mebane,NC,2
+Clinton,NC,2
+Roanoke Rapids,NC,2
+Castle Hayne,NC,2
+Sherrills Ford,NC,2
+Graham,NC,2
+Waynesville,NC,2
+Mount Holly,NC,2
+Goldsboro,NC,2
+Flat Rock,NC,2
+Black Mountain,NC,2
+Supply,NC,2
+Swannanoa,NC,1
+Catawba,SC,1
+Summerfield,NC,1
+Colfax,NC,1
+Reidsville,NC,1
+Bahama,NC,1
+Stokesdale,NC,1
+Lillington,NC,1
+Whitsett,NC,1
+Whispering Pines,NC,1
+Oak Ridge,NC,1
+Semora,NC,1
+New London,NC,1
+Littleton,NC,1
+Cameron,NC,1
+Hope Mills,NC,1
+Midland,NC,1
+Jackson Springs,NC,1
+Pfafftown,NC,1
+Beaufort,NC,1
+Winterville,NC,1
+Chocowinity,NC,1
+Ayden,NC,1
+Manteo,NC,1
+Ocracoke,NC,1
+Edenton,NC,1
+Atkinson,NC,1
+Kelly,NC,1
+Roper,NC,1
+Grandy,NC,1
+Knotts Island,NC,1
+Frisco,NC,1
+Aberdeen,NC,1
+Vass,NC,1
+Pinebluff,NC,1
+West End,NC,1
+Carthage,NC,1
+Raeford,NC,1
+Trinity,NC,1
+Jamestown,NC,1
+Advance,NC,1
+Walkertown,NC,1
+North Wilkesboro,NC,1
+Ferguson,NC,1
+Lenoir,NC,1
+Morganton,NC,1
+Rutherfordton,NC,1
+Columbus,NC,1
+Mill Spring,NC,1
+Etowah,NC,1
+Sylva,NC,1
+Murphy,NC,1
+Leicester,NC,1
+Mars Hill,NC,1
+Marshall,NC,1
+Zirconia,NC,1
+Haw River,NC,1
+Granite Quarry,NC,1
+Rougemont,NC,1
+Mount Ulla,NC,1
+Carrboro,NC,1
+Louisburg,NC,1
+Browns Summit,NC,1
+Simpsonville,SC,12
+Hilton Head Island,SC,12
+Greenville,SC,11
+Summerville,SC,9
+Rock Hill,SC,8
+North Charleston,SC,6
+North Myrtle Beach,SC,5
+Conway,SC,5
+Surfside Beach,SC,4
+Greer,SC,4
+Pawleys Island,SC,4
+Little River,SC,4
+Murrells Inlet,SC,4
+Chapin,SC,3
+Johns Island,SC,3
+Daniel Island,SC,3
+Irmo,SC,3
+Florence,SC,3
+Taylors,SC,3
+Anderson,SC,2
+Clemson,SC,2
+Easley,SC,2
+Boiling Springs,SC,2
+Clover,SC,2
+Lancaster,SC,2
+Okatie,SC,2
+Gilbert,SC,2
+Lexington,SC,2
+Ladson,SC,2
+West Columbia,SC,2
+Aiken,SC,2
+Elgin,SC,2
+Hardeeville,SC,2
+York,SC,2
+Greenwood,SC,2
+Fountain Inn,SC,2
+Landrum,SC,2
+Roebuck,SC,2
+Beaufort,SC,2
+Longs,SC,2
+Seneca,SC,2
+Ridgeville,SC,1
+Spartanburg,SC,1
+Chester,SC,1
+Moore,SC,1
+Huger,SC,1
+Blythewood,SC,1
+Newberry,SC,1
+Sumter,SC,1
+Nichols,SC,1
+Travelers Rest,SC,1
+North Augusta,SC,1
+Winnsboro,SC,1
+Central,SC,1
+Saint Helena Island,SC,1
+Isle of Palms,SC,1
+Estill,SC,1
+Drayton,SC,1
+Hanahan,SC,1
+Goose Creek,SC,1
+Sunset,SC,1
+Pelzer,SC,1
+Moncks Corner,SC,1
+Pinopolis,SC,1
+Wadmalaw Island,SC,1
+Prosperity,SC,1
+West Union,SC,1
+Gramling,SC,1
+Woodruff,SC,1
+Graniteville,SC,1
+Clinton,SC,1
+Lake View,SC,1`;
+
+// ─── GEOCODING ───────────────────────────────────────────────────────
+const geocode = {
+  "Charlotte,NC":[35.2271,-80.8431],"Raleigh,NC":[35.7796,-78.6382],"Cary,NC":[35.7915,-78.7811],
+  "Wilmington,NC":[34.2257,-77.9447],"Apex,NC":[35.7327,-78.8503],"Durham,NC":[35.994,-78.8986],
+  "Wake Forest,NC":[35.9799,-78.5097],"Holly Springs,NC":[35.6513,-78.8336],"Mooresville,NC":[35.5849,-80.8101],
+  "Leland,NC":[34.2568,-78.0453],"Waxhaw,NC":[34.9243,-80.7434],"Fuquay Varina,NC":[35.5843,-78.8],
+  "Southport,NC":[33.9215,-78.0197],"Matthews,NC":[35.1168,-80.7237],"Huntersville,NC":[35.4107,-80.8429],
+  "Concord,NC":[35.4088,-80.5795],"Asheville,NC":[35.5951,-82.5515],"Greensboro,NC":[36.0726,-79.792],
+  "Chapel Hill,NC":[35.9132,-79.0558],"Clayton,NC":[35.6507,-78.4564],"Ocean Isle Beach,NC":[33.8935,-78.4272],
+  "Morrisville,NC":[35.8235,-78.8256],"New Bern,NC":[35.1085,-77.044],"Greenville,NC":[35.6127,-77.3664],
+  "Winston Salem,NC":[36.0999,-80.2442],"Hampstead,NC":[34.3668,-77.7108],"Knightdale,NC":[35.7879,-78.4797],
+  "Calabash,NC":[33.8910,-78.5683],"Cornelius,NC":[35.4868,-80.8601],"Belmont,NC":[35.243,-81.0373],
+  "Fayetteville,NC":[35.0527,-78.8784],"Garner,NC":[35.7113,-78.6142],"Wendell,NC":[35.7813,-78.3697],
+  "High Point,NC":[35.9557,-79.9976],"Bolivia,NC":[34.0682,-78.1483],"Carolina Beach,NC":[34.0352,-77.8936],
+  "Willow Spring,NC":[35.5563,-78.6753],"Monroe,NC":[34.9854,-80.5495],"Rolesville,NC":[35.9232,-78.4572],
+  "Zebulon,NC":[35.8243,-78.3147],"Pittsboro,NC":[35.7202,-79.1773],"Sunset Beach,NC":[33.8804,-78.5128],
+  "Southern Pines,NC":[35.1741,-79.3923],"Denver,NC":[35.5327,-81.0298],"Indian Trail,NC":[35.0768,-80.6692],
+  "New Hill,NC":[35.6927,-78.9261],"Hillsborough,NC":[36.0754,-79.0998],"Oak Island,NC":[33.9135,-78.1608],
+  "Weaverville,NC":[35.6971,-82.5607],"Hickory,NC":[35.7332,-81.3412],"Youngsville,NC":[36.0249,-78.4744],
+  "Franklinton,NC":[36.1021,-78.4581],"Gastonia,NC":[35.2621,-81.1873],"Mint Hill,NC":[35.1796,-80.6473],
+  "Hendersonville,NC":[35.3187,-82.4607],"Davidson,NC":[35.4993,-80.8487],"Smithfield,NC":[35.5085,-78.3394],
+  "Surf City,NC":[34.4274,-77.5461],"Sneads Ferry,NC":[34.5527,-77.3978],"Pinehurst,NC":[35.1957,-79.4695],
+  "Sanford,NC":[35.4799,-79.1803],"Swansboro,NC":[34.6877,-77.1197],"Harrisburg,NC":[35.3254,-80.6587],
+  "Pineville,NC":[35.0832,-80.8923],"Angier,NC":[35.507,-78.7389],"Statesville,NC":[35.7826,-80.8873],
+  "Brevard,NC":[35.2334,-82.7343],"Jacksonville,NC":[34.7541,-77.4303],"Salisbury,NC":[35.6710,-80.4743],
+  "Morehead City,NC":[34.7230,-76.7260],"Shallotte,NC":[33.9735,-78.3856],"Carolina Shores,NC":[33.9002,-78.5725],
+  "Fletcher,NC":[35.4312,-82.5018],"Kernersville,NC":[36.1197,-80.0737],"Troutman,NC":[35.6988,-80.8882],
+  "Mount Pleasant,NC":[35.3988,-80.4348],"Wilson,NC":[35.7213,-77.9155],"Clemmons,NC":[36.0216,-80.382],
+  "Kannapolis,NC":[35.4874,-80.6217],"Boone,NC":[36.2168,-81.6746],"Tryon,NC":[35.209,-82.2329],
+  "Asheboro,NC":[35.7079,-79.8137],"Newport,NC":[34.7866,-76.8590],"Burlington,NC":[36.0957,-79.4378],
+  "Arden,NC":[35.4701,-82.5151],"Nags Head,NC":[35.9574,-75.624],"Kitty Hawk,NC":[36.0648,-75.7057],
+  "Mebane,NC":[36.0960,-79.2668],"Clinton,NC":[35.0127,-78.3233],"Roanoke Rapids,NC":[36.4615,-77.6541],
+  "Castle Hayne,NC":[34.3535,-77.8989],"Sherrills Ford,NC":[35.6108,-80.9935],"Graham,NC":[36.0688,-79.4006],
+  "Waynesville,NC":[35.4887,-83.0095],"Mount Holly,NC":[35.2982,-81.0159],"Goldsboro,NC":[35.3849,-77.9928],
+  "Flat Rock,NC":[35.2718,-82.4440],"Black Mountain,NC":[35.618,-82.3212],"Supply,NC":[34.0135,-78.2747],
+  "Swannanoa,NC":[35.5976,-82.3979],"Summerfield,NC":[36.2088,-79.9018],"Colfax,NC":[36.0238,-79.9926],
+  "Reidsville,NC":[36.3524,-79.6642],"Bahama,NC":[36.1738,-78.8789],"Stokesdale,NC":[36.2374,-79.9801],
+  "Lillington,NC":[35.3993,-78.8156],"Whitsett,NC":[36.0688,-79.5637],"Whispering Pines,NC":[35.2566,-79.3729],
+  "Oak Ridge,NC":[36.1744,-80.0254],"Semora,NC":[36.5151,-79.1052],"New London,NC":[35.3818,-80.2098],
+  "Littleton,NC":[36.4382,-77.9145],"Cameron,NC":[35.3260,-79.2557],"Hope Mills,NC":[34.9702,-78.9453],
+  "Midland,NC":[35.2274,-80.5007],"Jackson Springs,NC":[35.2168,-79.6501],"Pfafftown,NC":[36.1558,-80.3762],
+  "Beaufort,NC":[34.7182,-76.6638],"Winterville,NC":[35.5294,-77.4003],"Chocowinity,NC":[35.5191,-77.1003],
+  "Ayden,NC":[35.4727,-77.4156],"Manteo,NC":[35.9082,-75.6757],"Ocracoke,NC":[35.1146,-75.981],
+  "Edenton,NC":[36.0577,-76.6077],"Atkinson,NC":[34.5277,-78.1672],"Kelly,NC":[34.4752,-78.3258],
+  "Roper,NC":[35.8774,-76.6152],"Grandy,NC":[36.2368,-75.8557],"Knotts Island,NC":[36.5099,-75.9385],
+  "Frisco,NC":[35.2369,-75.6190],"Aberdeen,NC":[35.1316,-79.4295],"Vass,NC":[35.2623,-79.2851],
+  "Pinebluff,NC":[35.1094,-79.4719],"West End,NC":[35.2368,-79.5368],"Carthage,NC":[35.3460,-79.4168],
+  "Raeford,NC":[34.9810,-79.2237],"Trinity,NC":[35.8932,-79.9976],"Jamestown,NC":[35.9933,-79.9354],
+  "Advance,NC":[35.9441,-80.4092],"Walkertown,NC":[36.1758,-80.1571],"North Wilkesboro,NC":[36.1585,-81.1476],
+  "Ferguson,NC":[36.1027,-81.4346],"Lenoir,NC":[35.914,-81.539],"Morganton,NC":[35.7454,-81.6848],
+  "Rutherfordton,NC":[35.3701,-81.957],"Columbus,NC":[35.2532,-82.1968],"Mill Spring,NC":[35.3243,-82.1579],
+  "Etowah,NC":[35.3182,-82.5943],"Sylva,NC":[35.3734,-83.2257],"Murphy,NC":[35.0876,-84.0346],
+  "Leicester,NC":[35.6504,-82.6790],"Mars Hill,NC":[35.8268,-82.5493],"Marshall,NC":[35.7979,-82.6835],
+  "Zirconia,NC":[35.2235,-82.4807],"Haw River,NC":[36.0922,-79.3642],"Granite Quarry,NC":[35.6138,-80.4427],
+  "Rougemont,NC":[36.2199,-78.9939],"Mount Ulla,NC":[35.5810,-80.6427],"Carrboro,NC":[35.9102,-79.0753],
+  "Louisburg,NC":[36.0994,-78.3011],"Browns Summit,NC":[36.2043,-79.6784],
+  "Myrtle Beach,SC":[33.6891,-78.8867],"Mount Pleasant,SC":[32.7941,-79.8626],"Charleston,SC":[32.7765,-79.9311],
+  "Fort Mill,SC":[35.0074,-80.945],"Bluffton,SC":[32.2371,-80.8604],"Columbia,SC":[34.0007,-81.0348],
+  "Simpsonville,SC":[34.7371,-82.2543],"Hilton Head Island,SC":[32.2163,-80.7526],"Greenville,SC":[34.8526,-82.394],
+  "Summerville,SC":[33.0185,-80.1756],"Rock Hill,SC":[34.9249,-81.025],"North Charleston,SC":[32.8546,-80.0226],
+  "North Myrtle Beach,SC":[33.8160,-78.6800],"Conway,SC":[33.836,-79.0478],"Surfside Beach,SC":[33.6060,-78.9730],
+  "Greer,SC":[34.9388,-82.2268],"Pawleys Island,SC":[33.4313,-79.1217],"Little River,SC":[33.8735,-78.6145],
+  "Murrells Inlet,SC":[33.5510,-79.0414],"Chapin,SC":[34.1660,-81.3498],"Johns Island,SC":[32.7022,-80.0477],
+  "Daniel Island,SC":[32.8610,-79.9326],"Irmo,SC":[34.0860,-81.1832],"Florence,SC":[34.1954,-79.7626],
+  "Taylors,SC":[34.9204,-82.3093],"Anderson,SC":[34.5034,-82.6501],"Clemson,SC":[34.6834,-82.8374],
+  "Easley,SC":[34.8298,-82.6015],"Boiling Springs,SC":[35.0463,-81.9832],"Clover,SC":[35.1113,-81.2265],
+  "Lancaster,SC":[34.7204,-80.7709],"Okatie,SC":[32.3055,-80.8846],"Gilbert,SC":[33.9227,-81.3932],
+  "Lexington,SC":[33.9813,-81.2368],"Ladson,SC":[32.9857,-80.1098],"West Columbia,SC":[33.9935,-81.0734],
+  "Aiken,SC":[33.5604,-81.7196],"Elgin,SC":[34.1689,-80.7718],"Hardeeville,SC":[32.2813,-81.0804],
+  "York,SC":[34.9943,-81.2423],"Greenwood,SC":[34.1954,-82.1618],"Fountain Inn,SC":[34.6882,-82.1965],
+  "Landrum,SC":[35.1752,-82.189],"Roebuck,SC":[34.8746,-81.9668],"Beaufort,SC":[32.4316,-80.6698],
+  "Longs,SC":[33.9101,-78.7234],"Seneca,SC":[34.6857,-82.9532],"Ridgeville,SC":[33.0935,-80.3153],
+  "Spartanburg,SC":[34.9496,-81.9321],"Chester,SC":[34.7046,-81.2143],"Moore,SC":[35.0160,-81.9918],
+  "Huger,SC":[33.0449,-79.7966],"Blythewood,SC":[34.2135,-80.9740],"Newberry,SC":[34.2746,-81.6187],
+  "Sumter,SC":[33.9204,-80.3415],"Nichols,SC":[34.2310,-79.1376],"Travelers Rest,SC":[34.9676,-82.4432],
+  "North Augusta,SC":[33.5018,-81.9651],"Winnsboro,SC":[34.3807,-81.0865],"Central,SC":[34.7243,-82.7813],
+  "Saint Helena Island,SC":[32.3885,-80.5449],"Isle of Palms,SC":[32.7866,-79.7948],
+  "Estill,SC":[32.7551,-81.2418],"Drayton,SC":[34.9518,-81.9154],"Hanahan,SC":[32.9185,-80.0220],
+  "Goose Creek,SC":[32.9810,-80.0326],"Sunset,SC":[34.8637,-82.8418],"Pelzer,SC":[34.6444,-82.4624],
+  "Moncks Corner,SC":[33.1960,-80.0131],"Pinopolis,SC":[33.2510,-80.0368],
+  "Wadmalaw Island,SC":[32.6499,-80.1751],"Prosperity,SC":[34.2085,-81.5340],
+  "West Union,SC":[34.7637,-83.0490],"Gramling,SC":[35.0679,-82.1018],"Woodruff,SC":[34.7393,-82.0368],
+  "Graniteville,SC":[33.5630,-81.8068],"Clinton,SC":[34.4718,-81.8807],"Lake View,SC":[34.3510,-79.1676],
+  "Catawba,SC":[34.8521,-80.9148]
+};
+
+// ─── CSA / MSA MAPPING ──────────────────────────────────────────────
+// Maps each "City,State" to a metro area name. Based on US Census CSA/MSA definitions.
+// Cities not mapped to a metro remain standalone as "micro" areas.
+const cityToMetro = {
+  // ── Charlotte-Concord CSA (Charlotte-Concord-Gastonia MSA + surrounding) ──
+  "Charlotte,NC":"Charlotte-Concord-Gastonia","Matthews,NC":"Charlotte-Concord-Gastonia",
+  "Huntersville,NC":"Charlotte-Concord-Gastonia","Concord,NC":"Charlotte-Concord-Gastonia",
+  "Cornelius,NC":"Charlotte-Concord-Gastonia","Belmont,NC":"Charlotte-Concord-Gastonia",
+  "Monroe,NC":"Charlotte-Concord-Gastonia","Indian Trail,NC":"Charlotte-Concord-Gastonia",
+  "Mint Hill,NC":"Charlotte-Concord-Gastonia","Pineville,NC":"Charlotte-Concord-Gastonia",
+  "Harrisburg,NC":"Charlotte-Concord-Gastonia","Davidson,NC":"Charlotte-Concord-Gastonia",
+  "Gastonia,NC":"Charlotte-Concord-Gastonia","Kannapolis,NC":"Charlotte-Concord-Gastonia",
+  "Mount Holly,NC":"Charlotte-Concord-Gastonia","Midland,NC":"Charlotte-Concord-Gastonia",
+  "Waxhaw,NC":"Charlotte-Concord-Gastonia","Mooresville,NC":"Charlotte-Concord-Gastonia",
+  "Statesville,NC":"Charlotte-Concord-Gastonia","Troutman,NC":"Charlotte-Concord-Gastonia",
+  "Sherrills Ford,NC":"Charlotte-Concord-Gastonia","Mount Pleasant,NC":"Charlotte-Concord-Gastonia",
+  "Denver,NC":"Charlotte-Concord-Gastonia","Fort Mill,SC":"Charlotte-Concord-Gastonia",
+  "Rock Hill,SC":"Charlotte-Concord-Gastonia","Clover,SC":"Charlotte-Concord-Gastonia",
+  "Lancaster,SC":"Charlotte-Concord-Gastonia","York,SC":"Charlotte-Concord-Gastonia",
+  "Chester,SC":"Charlotte-Concord-Gastonia","Mount Ulla,NC":"Charlotte-Concord-Gastonia",
+  "Salisbury,NC":"Charlotte-Concord-Gastonia","Granite Quarry,NC":"Charlotte-Concord-Gastonia",
+  "New London,NC":"Charlotte-Concord-Gastonia","Catawba,SC":"Charlotte-Concord-Gastonia",
+
+  // ── Raleigh-Durham-Cary CSA (Research Triangle) ──
+  "Raleigh,NC":"Raleigh-Durham-Chapel Hill","Cary,NC":"Raleigh-Durham-Chapel Hill",
+  "Durham,NC":"Raleigh-Durham-Chapel Hill","Chapel Hill,NC":"Raleigh-Durham-Chapel Hill",
+  "Apex,NC":"Raleigh-Durham-Chapel Hill","Wake Forest,NC":"Raleigh-Durham-Chapel Hill",
+  "Holly Springs,NC":"Raleigh-Durham-Chapel Hill","Fuquay Varina,NC":"Raleigh-Durham-Chapel Hill",
+  "Morrisville,NC":"Raleigh-Durham-Chapel Hill","Clayton,NC":"Raleigh-Durham-Chapel Hill",
+  "Knightdale,NC":"Raleigh-Durham-Chapel Hill","Garner,NC":"Raleigh-Durham-Chapel Hill",
+  "Wendell,NC":"Raleigh-Durham-Chapel Hill","Willow Spring,NC":"Raleigh-Durham-Chapel Hill",
+  "Rolesville,NC":"Raleigh-Durham-Chapel Hill","Zebulon,NC":"Raleigh-Durham-Chapel Hill",
+  "Pittsboro,NC":"Raleigh-Durham-Chapel Hill","New Hill,NC":"Raleigh-Durham-Chapel Hill",
+  "Hillsborough,NC":"Raleigh-Durham-Chapel Hill","Youngsville,NC":"Raleigh-Durham-Chapel Hill",
+  "Franklinton,NC":"Raleigh-Durham-Chapel Hill","Smithfield,NC":"Raleigh-Durham-Chapel Hill",
+  "Angier,NC":"Raleigh-Durham-Chapel Hill","Bahama,NC":"Raleigh-Durham-Chapel Hill",
+  "Lillington,NC":"Raleigh-Durham-Chapel Hill","Carrboro,NC":"Raleigh-Durham-Chapel Hill",
+  "Louisburg,NC":"Raleigh-Durham-Chapel Hill","Rougemont,NC":"Raleigh-Durham-Chapel Hill",
+  "Mebane,NC":"Raleigh-Durham-Chapel Hill",
+
+  // ── Myrtle Beach-Conway CSA ──
+  "Myrtle Beach,SC":"Myrtle Beach-Conway","North Myrtle Beach,SC":"Myrtle Beach-Conway",
+  "Conway,SC":"Myrtle Beach-Conway","Surfside Beach,SC":"Myrtle Beach-Conway",
+  "Little River,SC":"Myrtle Beach-Conway","Murrells Inlet,SC":"Myrtle Beach-Conway",
+  "Pawleys Island,SC":"Myrtle Beach-Conway","Longs,SC":"Myrtle Beach-Conway",
+  "Ocean Isle Beach,NC":"Myrtle Beach-Conway","Calabash,NC":"Myrtle Beach-Conway",
+  "Sunset Beach,NC":"Myrtle Beach-Conway","Carolina Shores,NC":"Myrtle Beach-Conway",
+  "Nichols,SC":"Myrtle Beach-Conway","Lake View,SC":"Myrtle Beach-Conway",
+
+  // ── Wilmington MSA ──
+  "Wilmington,NC":"Wilmington","Leland,NC":"Wilmington",
+  "Hampstead,NC":"Wilmington","Carolina Beach,NC":"Wilmington",
+  "Castle Hayne,NC":"Wilmington","Bolivia,NC":"Wilmington",
+  "Southport,NC":"Wilmington","Oak Island,NC":"Wilmington",
+  "Supply,NC":"Wilmington","Shallotte,NC":"Wilmington",
+  "Surf City,NC":"Wilmington","Atkinson,NC":"Wilmington","Kelly,NC":"Wilmington",
+
+  // ── Charleston-North Charleston MSA ──
+  "Charleston,SC":"Charleston","Mount Pleasant,SC":"Charleston",
+  "Summerville,SC":"Charleston","North Charleston,SC":"Charleston",
+  "Johns Island,SC":"Charleston","Daniel Island,SC":"Charleston",
+  "Isle of Palms,SC":"Charleston","Hanahan,SC":"Charleston",
+  "Goose Creek,SC":"Charleston","Ladson,SC":"Charleston",
+  "Moncks Corner,SC":"Charleston","Pinopolis,SC":"Charleston",
+  "Wadmalaw Island,SC":"Charleston","Huger,SC":"Charleston",
+  "Ridgeville,SC":"Charleston",
+
+  // ── Greensboro-Winston-Salem-High Point CSA ──
+  "Greensboro,NC":"Greensboro-Winston-Salem-High Point",
+  "Winston Salem,NC":"Greensboro-Winston-Salem-High Point",
+  "High Point,NC":"Greensboro-Winston-Salem-High Point",
+  "Kernersville,NC":"Greensboro-Winston-Salem-High Point",
+  "Burlington,NC":"Greensboro-Winston-Salem-High Point",
+  "Clemmons,NC":"Greensboro-Winston-Salem-High Point",
+  "Asheboro,NC":"Greensboro-Winston-Salem-High Point",
+  "Summerfield,NC":"Greensboro-Winston-Salem-High Point",
+  "Colfax,NC":"Greensboro-Winston-Salem-High Point",
+  "Reidsville,NC":"Greensboro-Winston-Salem-High Point",
+  "Stokesdale,NC":"Greensboro-Winston-Salem-High Point",
+  "Whitsett,NC":"Greensboro-Winston-Salem-High Point",
+  "Oak Ridge,NC":"Greensboro-Winston-Salem-High Point",
+  "Pfafftown,NC":"Greensboro-Winston-Salem-High Point",
+  "Trinity,NC":"Greensboro-Winston-Salem-High Point",
+  "Jamestown,NC":"Greensboro-Winston-Salem-High Point",
+  "Advance,NC":"Greensboro-Winston-Salem-High Point",
+  "Walkertown,NC":"Greensboro-Winston-Salem-High Point",
+  "Graham,NC":"Greensboro-Winston-Salem-High Point",
+  "Haw River,NC":"Greensboro-Winston-Salem-High Point",
+  "Browns Summit,NC":"Greensboro-Winston-Salem-High Point",
+  "Semora,NC":"Greensboro-Winston-Salem-High Point",
+
+  // ── Asheville MSA ──
+  "Asheville,NC":"Asheville","Weaverville,NC":"Asheville",
+  "Fletcher,NC":"Asheville","Arden,NC":"Asheville",
+  "Black Mountain,NC":"Asheville","Swannanoa,NC":"Asheville",
+  "Leicester,NC":"Asheville","Mars Hill,NC":"Asheville",
+  "Marshall,NC":"Asheville","Waynesville,NC":"Asheville",
+  "Hendersonville,NC":"Asheville","Flat Rock,NC":"Asheville",
+  "Brevard,NC":"Asheville","Etowah,NC":"Asheville",
+  "Zirconia,NC":"Asheville","Columbus,NC":"Asheville",
+  "Mill Spring,NC":"Asheville",
+
+  // ── Greenville-Spartanburg-Anderson CSA ──
+  "Greenville,SC":"Greenville-Spartanburg-Anderson","Simpsonville,SC":"Greenville-Spartanburg-Anderson",
+  "Greer,SC":"Greenville-Spartanburg-Anderson","Taylors,SC":"Greenville-Spartanburg-Anderson",
+  "Easley,SC":"Greenville-Spartanburg-Anderson","Anderson,SC":"Greenville-Spartanburg-Anderson",
+  "Clemson,SC":"Greenville-Spartanburg-Anderson","Boiling Springs,SC":"Greenville-Spartanburg-Anderson",
+  "Spartanburg,SC":"Greenville-Spartanburg-Anderson","Travelers Rest,SC":"Greenville-Spartanburg-Anderson",
+  "Central,SC":"Greenville-Spartanburg-Anderson","Pelzer,SC":"Greenville-Spartanburg-Anderson",
+  "Fountain Inn,SC":"Greenville-Spartanburg-Anderson","Moore,SC":"Greenville-Spartanburg-Anderson",
+  "Drayton,SC":"Greenville-Spartanburg-Anderson","Roebuck,SC":"Greenville-Spartanburg-Anderson",
+  "Landrum,SC":"Greenville-Spartanburg-Anderson","Seneca,SC":"Greenville-Spartanburg-Anderson",
+  "Sunset,SC":"Greenville-Spartanburg-Anderson","West Union,SC":"Greenville-Spartanburg-Anderson",
+  "Gramling,SC":"Greenville-Spartanburg-Anderson","Woodruff,SC":"Greenville-Spartanburg-Anderson",
+  "Tryon,NC":"Greenville-Spartanburg-Anderson",
+
+  // ── Columbia-Orangeburg-Newberry CSA ──
+  "Columbia,SC":"Columbia","Chapin,SC":"Columbia","Irmo,SC":"Columbia",
+  "Lexington,SC":"Columbia","West Columbia,SC":"Columbia","Gilbert,SC":"Columbia",
+  "Elgin,SC":"Columbia","Blythewood,SC":"Columbia","Newberry,SC":"Columbia",
+  "Winnsboro,SC":"Columbia","Prosperity,SC":"Columbia","Sumter,SC":"Columbia",
+
+  // ── Hilton Head-Bluffton-Beaufort MSA ──
+  "Bluffton,SC":"Hilton Head-Bluffton-Beaufort","Hilton Head Island,SC":"Hilton Head-Bluffton-Beaufort",
+  "Okatie,SC":"Hilton Head-Bluffton-Beaufort","Beaufort,SC":"Hilton Head-Bluffton-Beaufort",
+  "Hardeeville,SC":"Hilton Head-Bluffton-Beaufort","Saint Helena Island,SC":"Hilton Head-Bluffton-Beaufort",
+  "Estill,SC":"Hilton Head-Bluffton-Beaufort",
+
+  // ── Fayetteville MSA ──
+  "Fayetteville,NC":"Fayetteville","Hope Mills,NC":"Fayetteville","Raeford,NC":"Fayetteville",
+
+  // ── Greenville, NC MSA ──
+  "Greenville,NC":"Greenville NC","Winterville,NC":"Greenville NC","Ayden,NC":"Greenville NC",
+  "Chocowinity,NC":"Greenville NC",
+
+  // ── New Bern MSA ──
+  "New Bern,NC":"New Bern","Newport,NC":"New Bern","Morehead City,NC":"New Bern",
+  "Beaufort,NC":"New Bern","Swansboro,NC":"New Bern",
+
+  // ── Jacksonville, NC MSA ──
+  "Jacksonville,NC":"Jacksonville NC","Sneads Ferry,NC":"Jacksonville NC",
+
+  // ── Hickory-Lenoir-Morganton MSA ──
+  "Hickory,NC":"Hickory-Lenoir-Morganton","Lenoir,NC":"Hickory-Lenoir-Morganton",
+  "Morganton,NC":"Hickory-Lenoir-Morganton","North Wilkesboro,NC":"Hickory-Lenoir-Morganton",
+  "Ferguson,NC":"Hickory-Lenoir-Morganton",
+
+  // ── Pinehurst-Southern Pines (Sandhills micro) ──
+  "Southern Pines,NC":"Pinehurst-Southern Pines","Pinehurst,NC":"Pinehurst-Southern Pines",
+  "Aberdeen,NC":"Pinehurst-Southern Pines","Vass,NC":"Pinehurst-Southern Pines",
+  "Pinebluff,NC":"Pinehurst-Southern Pines","West End,NC":"Pinehurst-Southern Pines",
+  "Whispering Pines,NC":"Pinehurst-Southern Pines","Cameron,NC":"Pinehurst-Southern Pines",
+  "Carthage,NC":"Pinehurst-Southern Pines","Jackson Springs,NC":"Pinehurst-Southern Pines",
+
+  // ── Aiken-Augusta area ──
+  "Aiken,SC":"Aiken-Augusta","North Augusta,SC":"Aiken-Augusta","Graniteville,SC":"Aiken-Augusta",
+
+  // ── Florence MSA ──
+  "Florence,SC":"Florence",
+
+  // ── Sanford micro ──
+  "Sanford,NC":"Sanford",
+
+  // ── Goldsboro micro ──
+  "Goldsboro,NC":"Goldsboro",
+
+  // ── Wilson micro ──
+  "Wilson,NC":"Wilson",
+
+  // ── Greenwood micro ──
+  "Greenwood,SC":"Greenwood","Clinton,SC":"Greenwood",
+
+  // ── Outer Banks ──
+  "Nags Head,NC":"Outer Banks","Kitty Hawk,NC":"Outer Banks","Manteo,NC":"Outer Banks",
+  "Ocracoke,NC":"Outer Banks","Frisco,NC":"Outer Banks","Grandy,NC":"Outer Banks",
+  "Knotts Island,NC":"Outer Banks",
+
+  // ── Boone micro ──
+  "Boone,NC":"Boone",
+
+  // ── Roanoke Rapids micro ──
+  "Roanoke Rapids,NC":"Roanoke Rapids","Littleton,NC":"Roanoke Rapids",
+
+  // ── Edenton ──
+  "Edenton,NC":"Edenton","Roper,NC":"Edenton",
+
+  // ── Sylva-Murphy (far west) ──
+  "Sylva,NC":"Western NC Mountains","Murphy,NC":"Western NC Mountains","Rutherfordton,NC":"Western NC Mountains",
+
+  // ── Clinton, NC micro ──
+  "Clinton,NC":"Clinton NC",
+};
+
+// Metro area center coords and display info
+const metroInfo = {
+  "Charlotte-Concord-Gastonia": { lat: 35.30, lng: -80.85, states: ["NC","SC"] },
+  "Raleigh-Durham-Chapel Hill": { lat: 35.84, lng: -78.72, states: ["NC"] },
+  "Myrtle Beach-Conway": { lat: 33.75, lng: -78.85, states: ["NC","SC"] },
+  "Wilmington": { lat: 34.18, lng: -77.95, states: ["NC"] },
+  "Charleston": { lat: 32.85, lng: -79.95, states: ["SC"] },
+  "Greensboro-Winston-Salem-High Point": { lat: 36.05, lng: -79.95, states: ["NC"] },
+  "Asheville": { lat: 35.48, lng: -82.53, states: ["NC"] },
+  "Greenville-Spartanburg-Anderson": { lat: 34.82, lng: -82.38, states: ["SC","NC"] },
+  "Columbia": { lat: 34.02, lng: -81.08, states: ["SC"] },
+  "Hilton Head-Bluffton-Beaufort": { lat: 32.30, lng: -80.78, states: ["SC"] },
+  "Fayetteville": { lat: 35.05, lng: -78.90, states: ["NC"] },
+  "Greenville NC": { lat: 35.58, lng: -77.37, states: ["NC"] },
+  "New Bern": { lat: 34.75, lng: -76.82, states: ["NC"] },
+  "Jacksonville NC": { lat: 34.72, lng: -77.42, states: ["NC"] },
+  "Hickory-Lenoir-Morganton": { lat: 35.78, lng: -81.45, states: ["NC"] },
+  "Pinehurst-Southern Pines": { lat: 35.20, lng: -79.42, states: ["NC"] },
+  "Aiken-Augusta": { lat: 33.53, lng: -81.80, states: ["SC"] },
+  "Florence": { lat: 34.20, lng: -79.76, states: ["SC"] },
+  "Sanford": { lat: 35.48, lng: -79.18, states: ["NC"] },
+  "Goldsboro": { lat: 35.38, lng: -77.99, states: ["NC"] },
+  "Wilson": { lat: 35.72, lng: -77.92, states: ["NC"] },
+  "Greenwood": { lat: 34.20, lng: -82.16, states: ["SC"] },
+  "Outer Banks": { lat: 35.98, lng: -75.68, states: ["NC"] },
+  "Boone": { lat: 36.22, lng: -81.67, states: ["NC"] },
+  "Roanoke Rapids": { lat: 36.45, lng: -77.80, states: ["NC"] },
+  "Edenton": { lat: 36.03, lng: -76.61, states: ["NC"] },
+  "Western NC Mountains": { lat: 35.22, lng: -83.50, states: ["NC"] },
+  "Clinton NC": { lat: 35.01, lng: -78.32, states: ["NC"] },
+};
+
+
+// ─── PARSE CSV ───────────────────────────────────────────────────────
+const rows = csvData.trim().split('\n').slice(1).map(line => {
+  const parts = line.split(',');
+  return { city: parts[0], state: parts[1], count: parseInt(parts[2]) };
+});
+
+const totalAlumni = rows.reduce((s, r) => s + r.count, 0);
+const ncTotal = rows.filter(r => r.state === 'NC').reduce((s, r) => s + r.count, 0);
+const scTotal = rows.filter(r => r.state === 'SC').reduce((s, r) => s + r.count, 0);
+
+document.getElementById('total-count').textContent = totalAlumni.toLocaleString();
+document.getElementById('city-count').textContent = rows.length;
+document.getElementById('nc-count').textContent = ncTotal.toLocaleString();
+document.getElementById('sc-count').textContent = scTotal.toLocaleString();
+
+
+// ─── BUILD METRO AGGREGATES ──────────────────────────────────────────
+function buildMetroData() {
+  const metros = {};
+  const unmapped = [];
+
+  rows.forEach(r => {
+    const key = `${r.city},${r.state}`;
+    const metro = cityToMetro[key];
+    if (metro) {
+      if (!metros[metro]) {
+        metros[metro] = { name: metro, count: 0, cities: [], states: new Set(), info: metroInfo[metro] };
+      }
+      metros[metro].count += r.count;
+      metros[metro].cities.push({ city: r.city, state: r.state, count: r.count });
+      metros[metro].states.add(r.state);
+    } else {
+      unmapped.push(r);
+    }
+  });
+
+  // Sort cities within each metro by count
+  Object.values(metros).forEach(m => {
+    m.cities.sort((a, b) => b.count - a.count);
+    m.statesArr = Array.from(m.states);
+  });
+
+  return { metros, unmapped };
+}
+
+const { metros, unmapped } = buildMetroData();
+
+
+// ─── MAP ─────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [34.5, -80.0],
+  zoom: 7,
+  zoomControl: true,
+  attributionControl: true
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap &copy; CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+
+// ─── RENDERING ───────────────────────────────────────────────────────
+let currentMarkers = [];
+let currentView = 'cities';
+let currentFilter = 'all';
+
+function clearMarkers() {
+  currentMarkers.forEach(m => map.removeLayer(m));
+  currentMarkers = [];
+}
+
+function getRadius(count, maxCount) {
+  const minR = 5, maxR = 45;
+  return minR + (maxR - minR) * Math.sqrt(count / maxCount);
+}
+
+function getStateColor(state) {
+  return state === 'NC' ? '99,179,237' : '251,191,36';
+}
+
+function getMetroColor(statesArr) {
+  if (statesArr.length > 1) return '167,139,250'; // purple for cross-state
+  return statesArr[0] === 'NC' ? '99,179,237' : '251,191,36';
+}
+
+function makeCityPopup(r, maxCount) {
+  const color = r.state === 'NC' ? '#63b3ed' : '#fbbf24';
+  const pct = ((r.count / maxCount) * 100).toFixed(0);
+  return `<div class="popup-inner">
+    <div class="popup-city">${r.city}</div>
+    <div class="popup-state">${r.state === 'NC' ? 'North Carolina' : 'South Carolina'}</div>
+    <div class="popup-count" style="color:${color}">${r.count}</div>
+    <div class="popup-count-label">alumni</div>
+    <div class="popup-bar"><div class="popup-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function makeMetroPopup(metro, maxCount) {
+  const rgb = getMetroColor(metro.statesArr);
+  const hexColor = metro.statesArr.length > 1 ? '#a78bfa'
+    : metro.statesArr[0] === 'NC' ? '#63b3ed' : '#fbbf24';
+  const pct = ((metro.count / maxCount) * 100).toFixed(0);
+  const stateLabel = metro.statesArr.map(s => s === 'NC' ? 'North Carolina' : 'South Carolina').join(' & ');
+
+  let citiesList = '';
+  const showCities = metro.cities.slice(0, 12);
+  const remaining = metro.cities.length - showCities.length;
+
+  showCities.forEach(c => {
+    citiesList += `<div class="popup-city-row">
+      <span class="popup-city-name">${c.city}, ${c.state}</span>
+      <span class="popup-city-count">${c.count}</span>
+    </div>`;
+  });
+  if (remaining > 0) {
+    citiesList += `<div class="popup-city-row"><span class="popup-city-name" style="font-style:italic;">+${remaining} more</span><span class="popup-city-count"></span></div>`;
+  }
+
+  return `<div class="popup-inner">
+    <div class="popup-metro-type">Combined Statistical Area</div>
+    <div class="popup-city">${metro.name}</div>
+    <div class="popup-state">${stateLabel}</div>
+    <div class="popup-count" style="color:${hexColor}">${metro.count}</div>
+    <div class="popup-count-label">alumni across ${metro.cities.length} cities</div>
+    <div class="popup-bar"><div class="popup-bar-fill" style="width:${pct}%;background:${hexColor}"></div></div>
+    <div class="popup-cities-list">
+      <div class="popup-top-label">Top cities</div>
+      ${citiesList}
+    </div>
+  </div>`;
+}
+
+function renderCities(filter) {
+  clearMarkers();
+  const filtered = filter === 'all' ? rows : rows.filter(r => r.state === filter);
+  const maxCount = Math.max(...filtered.map(r => r.count));
+  const sorted = [...filtered].sort((a, b) => b.count - a.count);
+
+  sorted.forEach(r => {
+    const key = `${r.city},${r.state}`;
+    const coords = geocode[key];
+    if (!coords) return;
+
+    const rgb = getStateColor(r.state);
+    const radius = getRadius(r.count, maxCount);
+
+    const circle = L.circleMarker([coords[0], coords[1]], {
+      radius,
+      fillColor: `rgba(${rgb},0.35)`,
+      color: `rgba(${rgb},0.7)`,
+      weight: 2,
+      fillOpacity: 0.6,
+    }).addTo(map);
+
+    circle.bindPopup(makeCityPopup(r, maxCount), { closeButton: false, offset: [0, -5] });
+    circle.on('mouseover', function() {
+      this.setStyle({ fillOpacity: 0.85, weight: 3, color: `rgba(${rgb},1)` });
+      this.openPopup();
+    });
+    circle.on('mouseout', function() {
+      this.setStyle({ fillOpacity: 0.6, weight: 2, color: `rgba(${rgb},0.7)` });
+      this.closePopup();
+    });
+    circle.on('click', function(e) { map.setView(e.latlng, map.getZoom() + 2); });
+
+    if (r.count >= 10) {
+      const label = L.divIcon({
+        className: '',
+        html: `<div style="color:#fff;font-family:'DM Sans',sans-serif;font-size:${r.count>=30?13:11}px;font-weight:700;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,0.8);pointer-events:none;white-space:nowrap;">${r.count}</div>`,
+        iconSize: [40, 20], iconAnchor: [20, 10],
+      });
+      currentMarkers.push(L.marker([coords[0], coords[1]], { icon: label, interactive: false }).addTo(map));
+    }
+
+    currentMarkers.push(circle);
+  });
+
+  document.getElementById('city-count').textContent = filtered.length;
+  document.getElementById('city-label').textContent = 'cities';
+}
+
+function renderMetros(filter) {
+  clearMarkers();
+
+  // Collect all items to render (metros + unmapped standalone cities)
+  let items = [];
+
+  Object.values(metros).forEach(metro => {
+    // Filter by state
+    if (filter !== 'all') {
+      const filteredCities = metro.cities.filter(c => c.state === filter);
+      if (filteredCities.length === 0) return;
+      const filteredMetro = {
+        ...metro,
+        count: filteredCities.reduce((s, c) => s + c.count, 0),
+        cities: filteredCities,
+        statesArr: [filter],
+      };
+      items.push({ type: 'metro', data: filteredMetro });
+    } else {
+      items.push({ type: 'metro', data: metro });
+    }
+  });
+
+  // Add unmapped cities as individual dots
+  const filteredUnmapped = filter === 'all' ? unmapped : unmapped.filter(r => r.state === filter);
+  filteredUnmapped.forEach(r => items.push({ type: 'city', data: r }));
+
+  const allCounts = items.map(i => i.type === 'metro' ? i.data.count : i.data.count);
+  const maxCount = Math.max(...allCounts, 1);
+
+  // Sort largest first for z-order
+  items.sort((a, b) => {
+    const ca = a.type === 'metro' ? a.data.count : a.data.count;
+    const cb = b.type === 'metro' ? b.data.count : b.data.count;
+    return cb - ca;
+  });
+
+  let metroCount = 0;
+
+  items.forEach(item => {
+    if (item.type === 'metro') {
+      metroCount++;
+      const metro = item.data;
+      const info = metro.info || metroInfo[metro.name];
+      if (!info) return;
+
+      const rgb = getMetroColor(metro.statesArr);
+      const radius = getRadius(metro.count, maxCount);
+
+      const circle = L.circleMarker([info.lat, info.lng], {
+        radius,
+        fillColor: `rgba(${rgb},0.3)`,
+        color: `rgba(${rgb},0.65)`,
+        weight: 2.5,
+        fillOpacity: 0.55,
+      }).addTo(map);
+
+      circle.bindPopup(makeMetroPopup(metro, maxCount), { closeButton: false, offset: [0, -5], maxWidth: 280 });
+      circle.on('mouseover', function() {
+        this.setStyle({ fillOpacity: 0.8, weight: 3.5, color: `rgba(${rgb},1)` });
+        this.openPopup();
+      });
+      circle.on('mouseout', function() {
+        this.setStyle({ fillOpacity: 0.55, weight: 2.5, color: `rgba(${rgb},0.65)` });
+        this.closePopup();
+      });
+      circle.on('click', function(e) { map.setView(e.latlng, map.getZoom() + 2); });
+
+      // Label for metros with 8+ alumni
+      if (metro.count >= 8) {
+        const shortName = metro.name.split('-')[0].split(',')[0];
+        const label = L.divIcon({
+          className: '',
+          html: `<div style="color:#fff;font-family:'DM Sans',sans-serif;font-size:${metro.count>=50?14:12}px;font-weight:700;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,0.9);pointer-events:none;white-space:nowrap;line-height:1.2;">
+            ${metro.count}<br><span style="font-size:9px;font-weight:500;opacity:0.7;">${shortName}</span>
+          </div>`,
+          iconSize: [100, 36], iconAnchor: [50, 18],
+        });
+        currentMarkers.push(L.marker([info.lat, info.lng], { icon: label, interactive: false }).addTo(map));
+      }
+
+      currentMarkers.push(circle);
+    } else {
+      // Standalone unmapped city
+      const r = item.data;
+      const key = `${r.city},${r.state}`;
+      const coords = geocode[key];
+      if (!coords) return;
+
+      const rgb = getStateColor(r.state);
+      const radius = getRadius(r.count, maxCount);
+
+      const circle = L.circleMarker([coords[0], coords[1]], {
+        radius: Math.max(radius, 4),
+        fillColor: `rgba(${rgb},0.25)`,
+        color: `rgba(${rgb},0.5)`,
+        weight: 1.5,
+        fillOpacity: 0.45,
+      }).addTo(map);
+
+      circle.bindPopup(makeCityPopup(r, maxCount), { closeButton: false, offset: [0, -5] });
+      circle.on('mouseover', function() {
+        this.setStyle({ fillOpacity: 0.75, weight: 2.5, color: `rgba(${rgb},0.9)` });
+        this.openPopup();
+      });
+      circle.on('mouseout', function() {
+        this.setStyle({ fillOpacity: 0.45, weight: 1.5, color: `rgba(${rgb},0.5)` });
+        this.closePopup();
+      });
+
+      currentMarkers.push(circle);
+    }
+  });
+
+  document.getElementById('city-count').textContent = metroCount + filteredUnmapped.length;
+  document.getElementById('city-label').textContent = 'metro areas & cities';
+}
+
+function render() {
+  if (currentView === 'cities') {
+    renderCities(currentFilter);
+    document.getElementById('legend-mixed').style.display = 'none';
+  } else {
+    renderMetros(currentFilter);
+    document.getElementById('legend-mixed').style.display = currentFilter === 'all' ? 'flex' : 'none';
+  }
+}
+
+// Initial render
+render();
+
+// ─── EVENT LISTENERS ─────────────────────────────────────────────────
+document.querySelectorAll('[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    render();
+  });
+});
+
+document.querySelectorAll('.state-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    render();
+  });
+});
+</script>
+</body>
+</html>
